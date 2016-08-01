@@ -1,2 +1,2 @@
-Simba-Tools
+# Simba-Tools
 Tools for RuneScape automation using Simba

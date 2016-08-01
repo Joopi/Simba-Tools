@@ -1,0 +1,140 @@
+program new;
+
+{$DEFINE SMART}
+{$I Reflection/Reflection.simba}
+
+const
+  RADIUS = 7;
+
+var
+  TPA, Arr, reds, stored : TPointArray;
+  img, index : integer;
+  timer : TReflectTimer;
+
+function loadVisibleTiles(loc : TPoint; var w2s, used : TPointArray) : TPointArray;
+var
+  x, y, z : integer;
+  temp, tile : TPoint;
+  bool : boolean;
+begin
+  for x := (loc.x - RADIUS) to (loc.x + RADIUS) do
+    for y := (loc.y - RADIUS) to (loc.y + RADIUS) do
+    begin
+
+      tile := Point(x, y);
+      temp := Reflect.tiles.tileToMS(tile);
+      if PointInBox(temp, AREA_MS) then
+      begin
+
+        bool := false;
+        for z := 0 to high(stored) do
+          if (tile.x = stored[z].x) and (tile.y = stored[z].y) then
+          begin
+            bool := true;
+            break;
+          end;
+
+        if bool then
+        begin
+          setLength(used, length(used) +1);
+          used[high(used)] := temp;
+        end
+        else
+        begin
+          setLength(result, length(result) +1);
+          result[high(result)] := tile;
+          setLength(w2s, length(w2s) +1);
+          w2s[high(w2s)] := temp;
+        end;
+
+      end;
+    end;
+end;
+
+procedure targetSMART;
+var
+  procs : TSysProcArr;
+  i : integer;
+begin
+  procs := getProcesses;
+  for i := 0 to high(procs) do
+    if pos('SMART M', procs[i].Title) > 0 then
+    begin
+      setTarget(procs[i]);
+      exit;
+    end;
+end;
+
+procedure getRealMousePos(var X, Y : Integer);
+var
+  KMTarget, ITarget : Integer;
+begin
+  KMTarget := getKeyMouseTarget();
+  ITarget := getImageTarget();
+  setDesktopAsClient();
+  system.getMousePos(X, Y);
+  setKeyMouseTarget(KMTarget);
+  setImageTarget(ITarget);
+end;
+
+function calculateClosest(screenPoints : TPointArray) : integer;
+var
+  MousePoint : TPoint;
+  closest : integer := -1;
+  i, temp, offsetX, offsetY : integer;
+begin
+  getRealMousePos(MousePoint.x, MousePoint.y);
+  getClientPosition(offsetX, offsetY);
+  for i := 0 to high(screenPoints) do
+    if ((temp := distance(MousePoint.x - offSetX -8, MousePoint.y - offsetY - 25, ScreenPoints[i].x, ScreenPoints[i].y)) < closest) or (closest = -1) then
+    begin
+      closest := temp;
+      result := i;
+    end;
+end;
+
+function stringifyArr(arrr : TPointArray) : string;
+var
+  temp : string;
+  x : integer;
+begin
+  result := '[';
+  for x := 0 to high(arrr) do
+    result := result + 'Point(' + toStr(arrr[x].X) + ', ' + toStr(arrr[x].Y) + '), ';
+  result := result + '|';
+  result := explode(', |', result)[0] + ']';
+end;
+
+begin
+  reflect.setup;
+  reflect.Graphics.Create(img, false);
+  targetSMART;
+  while true do
+  begin
+    wait(50);
+    if isKeyDown(VK_ESCAPE) then
+      break;
+    Arr := loadVisibleTiles(reflect.tiles.getGlobalTile, TPA, reds);
+    reflect.Graphics.clear;
+    reflect.Graphics.DrawTPA(TPA, clYellow, false);
+    reflect.Graphics.DrawTPA(reds, 15103, false);
+    index := calculateClosest(TPA);
+    reflect.Graphics.DrawClippedText(intToStr(Arr[index].x) + ', ' + intToStr(Arr[index].y), 'FriendChars', TPA[index], 521321);
+    timer.Restart;
+    while timer.ElapsedTime < 200 do
+    begin
+      wait(5);
+      if isKeyDown(VK_TAB) then
+      begin
+        setLength(stored, length(stored) +1);
+        stored[high(stored)] := Arr[index];
+        break;
+      end;
+    end;
+    TPA := [];
+    reds := [];
+  end;
+  writeLn(stringifyArr(stored));
+  reflect.graphics.clear;
+  reflect.graphics.Free;
+end.

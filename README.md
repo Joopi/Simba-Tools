@@ -1,2 +1,2 @@
 # Simba-Tools
-Tools for RuneScape automation using Simba
+Neat tool for marking tiles
